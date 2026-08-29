@@ -48,7 +48,7 @@ fasta_name="P_trochiloides.HiFi.cells_concat.fasta"
 hifiasm_loc="/home/cwcharle/project/fir-hifiasm/hifiasm"
 
 # The path to and names of the Hi-C Reads
-hifi_R1_path="/home/cwcharle/project/gw2022_data"
+hifi_R1_path="/home/cwcharle/project/gw2022_data/HiC_raw_reads"
 hifi_R1_name="P_trochiloides.HiC.R1.fq.gz"
 
 hifi_R2_path=${hifi_R1_path}
@@ -79,6 +79,12 @@ printf "\nStarting to run hifiasm\n"
 # Run hifiasm
 ${hifiasm_loc}/hifiasm \
 -t32 \
+-s 0.45 \
+-z 20 \
+-D 100.0 \
+-i \
+--hg-size 1300m \
+--max-kocc 2000 \
 --h1 ../${hifi_R1_name} \
 --h2 ../${hifi_R2_name} \
 ../${fasta_name}
