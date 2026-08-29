@@ -25,9 +25,6 @@ source ${prologue_filename}
 printf "\nCurrently loaded modules\n"
 module list
 
-printf "\nSourcing script to load the dependencies\n"
-source load_dependencies.sh
-
 printf "\nCurrently loaded modules\n"
 module list
 
