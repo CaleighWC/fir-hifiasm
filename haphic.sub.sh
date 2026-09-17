@@ -35,32 +35,36 @@ module list
 # This is the last spot where you need to ADD VARIABLES (3/3)
 
 # The path where you would like the job output to be placed
-out_dir_path="/home/cwcharle/scratch/fir-hifiasm/"
-log_archive_dir="/home/cwcharle/projects/def-dirwin/cwcharle/fir-hifiasm/copied_output_logs"
+out_dir_path="/home/cwcharle/scratch/fir-hifiasm/HapHiC"
+log_archive_dir="/home/cwcharle/projects/def-dirwin/cwcharle/fir-hifiasm/copied_output_logs/HapHiC"
 
-# The path to and names of PacBio HiFi read fasta files
-fasta_path="/home/cwcharle/projects/def-dirwin/cwcharle/gw2022_data/HiFi_raw_reads/"
-#fasta_path="/home/cwcharle/projects/def-dirwin/cwcharle/gwstaffan_data/gwstaffan_raw_reads"
+# The path to and names of the two haplotype fasta files extracted from .gfas
+fasta_path="/scratch/cwcharle/fir-hifiasm/2026-Aug-31_22-33-37"
+fasta_hap1_name="hifiasm.asm.hic.hap1.p_ctg.fasta"
+fasta_hap2_name="hifiasm.asm.hic.hap2.p_ctg.fasta"
 
-fasta_name="P_trochiloides.HiFi.cells_concat.fasta"
-#fasta_name="staffan_gw_ref.hifi_reads.default.fasta"
+# The path to and names of the two 
+graph_path=${fasta_path}
+graph_hap1_name="hifiasm.asm.hic.hap1.p_ctg.gfa"
+graph_hap2_name="hifiasm.asm.hic.hap2.p_ctg.gfa"
 
+# The path to the HapHiC script directory
 haphic_loc="/home/cwcharle/project/fir-hifiasm/HapHiC"
 
-# The path to and names of the Hi-C Reads
-hifi_R1_path="/home/cwcharle/project/gw2022_data/HiC_raw_reads"
-hifi_R1_name="P_trochiloides.HiC.R1.fq.gz"
-
-hifi_R2_path=${hifi_R1_path}
-hifi_R2_name="P_trochiloides.HiC.R2.fq.gz"
+# The path to and names of the alignment between HiC reads and the concatenated fasta
+hic_aln_path="/scratch/cwcharle/fir-hifiasm/bwa/2026-Sep-15_15-17-14"
+hic_aln_name="HiC_filtered.bam"
 
 # Copy input files to temp node local directory
 # This makes reads/writes faster during the job
 
-cp ${fasta_path}/${fasta_name} ${SLURM_TMPDIR}
+cp ${fasta_path}/${fasta_hap1_name} ${SLURM_TMPDIR}
+cp ${fasta_path}/${fasta_hap2_name} ${SLURM_TMPDIR}
 
-cp ${hifi_R1_path}/${hifi_R1_name} ${SLURM_TMPDIR}
-cp ${hifi_R2_path}/${hifi_R2_name} ${SLURM_TMPDIR}
+cp ${graph_path}/${graph_hap1_name} ${SLURM_TMPDIR}
+cp ${graph_path}/${graph_hap2_name} ${SLURM_TMPDIR}
+
+cp ${hic_aln_path}/${hic_aln_name} ${SLURM_TMPDIR}
 
 printf "\nThe files in SLURM_TMPDIR are:\n"
 echo $(ls ${SLURM_TMPDIR})
@@ -73,6 +77,10 @@ mkdir ${SLURM_TMPDIR}/${jobtime}
 
 printf "\nChanging working directory to job directory within SLURM_TMPDIR\n"
 cd ${SLURM_TMPDIR}/${jobtime}
+
+printf "\nConcatenating fastas\n"
+
+cat ../${fasta_hap1_name} ../${fasta_hap2_name} > ../haps_concat.fa
 
 printf "\nCreating python virtual environment\n"
 
@@ -87,13 +95,12 @@ pip install --no-index -r haphic_requirements.txt
 
 # Run HapHiC
 
-${haphic_loc}/haphic check
-
-
-
---h1 ../${hifi_R1_name} \
---h2 ../${hifi_R2_name} \
-../${fasta_name}
+${haphic_loc}/haphic pipeline \
+../haps_concat.fa \
+../${hic_aln_path} \
+1 \
+--gfa "../${graph_hap1_name},../${graph_hap2_name}" \
+--quick_view
 
 # Move output back to output directory in projects directory
 
