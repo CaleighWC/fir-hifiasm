@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH --time=0-09:00:00
+#SBATCH --time=0-00:005:00
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=32
-#SBATCH --mem=128G
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=16G
 #SBATCH --job-name="hifiasm.sub.sh"
 #SBATCH --account=def-dirwin
 #SBATCH --output=job_%j.out
@@ -82,25 +82,25 @@ printf "\nConcatenating fastas\n"
 
 cat ../${fasta_hap1_name} ../${fasta_hap2_name} > ../haps_concat.fa
 
-printf "\nCreating python virtual environment\n"
+printf "\nLoading Python virtual environment\n"
 
-# Make python virtual environment based on requirements
-virtualenv \
---no-download \
-$SLURM_TMPDIR/env
-source $SLURM_TMPDIR/env/bin/activate
-pip install --no-index --upgrade pip
+source ${haphic_loc}/haphic_env/bin/activate
 
-pip install --no-index -r haphic_requirements.txt
+printf "\nChecking HapHiC dependencies\n"
+
+${haphic_loc}/haphic check
 
 # Run HapHiC
+printf "\nRunning HapHiC\n"
 
 ${haphic_loc}/haphic pipeline \
 ../haps_concat.fa \
 ../${hic_aln_path} \
 1 \
 --gfa "../${graph_hap1_name},../${graph_hap2_name}" \
---quick_view
+--quick_view \
+--threads 8 \
+--processes 8
 
 # Move output back to output directory in projects directory
 
