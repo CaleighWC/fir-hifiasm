@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --time=0-00:005:00
+#SBATCH --time=1-00:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=16G
-#SBATCH --job-name="hifiasm.sub.sh"
+#SBATCH --job-name="haphic.sub.sh"
 #SBATCH --account=def-dirwin
 #SBATCH --output=job_%j.out
 #SBATCH --mail-user=cwc@zoology.ubc.ca
@@ -14,7 +14,7 @@
 
 scratchpath="/home/cwcharle/scratch"
 
-this_filename="hifiasm.sub.sh"
+this_filename="haphic.sub.sh"
 
 prologue_filename="tools/single_job_prologue.sh"
 
@@ -40,8 +40,10 @@ log_archive_dir="/home/cwcharle/projects/def-dirwin/cwcharle/fir-hifiasm/copied_
 
 # The path to and names of the two haplotype fasta files extracted from .gfas
 fasta_path="/scratch/cwcharle/fir-hifiasm/2026-Aug-31_22-33-37"
-fasta_hap1_name="hifiasm.asm.hic.hap1.p_ctg.fasta"
-fasta_hap2_name="hifiasm.asm.hic.hap2.p_ctg.fasta"
+#fasta_hap1_name="hifiasm.asm.hic.hap1.p_ctg.fasta"
+#fasta_hap2_name="hifiasm.asm.hic.hap2.p_ctg.fasta"
+fasta_hap1_name="hap1.fa"
+fasta_hap2_name="hap2.fa"
 
 # The path to and names of the two 
 graph_path=${fasta_path}
@@ -51,6 +53,9 @@ graph_hap2_name="hifiasm.asm.hic.hap2.p_ctg.gfa"
 # The path to the HapHiC script directory
 haphic_loc="/home/cwcharle/project/fir-hifiasm/HapHiC"
 
+# The path to the gfatools script directory
+gfatools_loc="/home/cwcharle/project/fir-hifiasm/gfatools"
+
 # The path to and names of the alignment between HiC reads and the concatenated fasta
 hic_aln_path="/scratch/cwcharle/fir-hifiasm/bwa/2026-Sep-15_15-17-14"
 hic_aln_name="HiC_filtered.bam"
@@ -58,8 +63,8 @@ hic_aln_name="HiC_filtered.bam"
 # Copy input files to temp node local directory
 # This makes reads/writes faster during the job
 
-cp ${fasta_path}/${fasta_hap1_name} ${SLURM_TMPDIR}
-cp ${fasta_path}/${fasta_hap2_name} ${SLURM_TMPDIR}
+#cp ${fasta_path}/${fasta_hap1_name} ${SLURM_TMPDIR}
+#cp ${fasta_path}/${fasta_hap2_name} ${SLURM_TMPDIR}
 
 cp ${graph_path}/${graph_hap1_name} ${SLURM_TMPDIR}
 cp ${graph_path}/${graph_hap2_name} ${SLURM_TMPDIR}
@@ -78,13 +83,19 @@ mkdir ${SLURM_TMPDIR}/${jobtime}
 printf "\nChanging working directory to job directory within SLURM_TMPDIR\n"
 cd ${SLURM_TMPDIR}/${jobtime}
 
+printf "\nExtracting fastas from gfas\n"
+${gfatools_loc}/gfatools gfa2fa ../${graph_hap1_name} > ../${fasta_hap1_name}
+${gfatools_loc}/gfatools gfa2fa ../${graph_hap2_name} > ../${fasta_hap2_name}
+echo $(ls ${SLURM_TMPDIR})
+
 printf "\nConcatenating fastas\n"
 
 cat ../${fasta_hap1_name} ../${fasta_hap2_name} > ../haps_concat.fa
+echo $(ls ${SLURM_TMPDIR})
 
 printf "\nLoading Python virtual environment\n"
 
-source ${haphic_loc}/haphic_env/bin/activate
+source ${haphic_loc}/../haphic_env/bin/activate
 
 printf "\nChecking HapHiC dependencies\n"
 
@@ -95,10 +106,9 @@ printf "\nRunning HapHiC\n"
 
 ${haphic_loc}/haphic pipeline \
 ../haps_concat.fa \
-../${hic_aln_path} \
-1 \
+../${hic_aln_name} \
+80 \
 --gfa "../${graph_hap1_name},../${graph_hap2_name}" \
---quick_view \
 --threads 8 \
 --processes 8
 
