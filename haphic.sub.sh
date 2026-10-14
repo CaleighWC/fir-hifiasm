@@ -45,7 +45,7 @@ fasta_path="/scratch/cwcharle/fir-hifiasm/2026-Aug-31_22-33-37"
 fasta_hap1_name="hap1.fa"
 fasta_hap2_name="hap2.fa"
 
-# The path to and names of the two 
+# The path to and names of the two assembly graphs 
 graph_path=${fasta_path}
 graph_hap1_name="hifiasm.asm.hic.hap1.p_ctg.gfa"
 graph_hap2_name="hifiasm.asm.hic.hap2.p_ctg.gfa"
