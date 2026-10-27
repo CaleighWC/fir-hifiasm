@@ -71,7 +71,8 @@ echo $(ls ${SLURM_TMPDIR})
 
 # Make node local output directory to copy back later
 
-mkdir ${SLURM_TMPDIR}/${jobtime}
+subdir=${jobtime}_${SLURM_JOB_ID}
+mkdir ${SLURM_TMPDIR}/${subdir}
 
 # Change working directory to node-local directory
 
@@ -80,8 +81,8 @@ cd ${SLURM_TMPDIR}
 # Run gfatools for stats and extract fastas
 
 printf "Printing stats of graphs to files"
-${gfatoolspath}/gfatools stat ${hap1_name} > ${jobtime}/hap1_gfastats.txt
-${gfatoolspath}/gfatools stat ${hap2_name} > ${jobtime}/hap2_gfastats.txt
+${gfatoolspath}/gfatools stat ${hap1_name} > ${subdir}/hap1_gfastats.txt
+${gfatoolspath}/gfatools stat ${hap2_name} > ${subdir}/hap2_gfastats.txt
 
 printf "Creating fastas from assembly graphs"
 ${gfatoolspath}/gfatools gfa2fa ${hap1_name} > hap1.fa
@@ -108,7 +109,7 @@ busco \
 -m genome \
 -l ./${dbname} \
 -c 8 \
--o ${jobtime}/busco_hap1
+-o ${subdir}/busco_hap1
 
 printf "\nRunning busco on hap2\n"
 
@@ -124,7 +125,7 @@ busco \
 -m genome \
 -l ./${dbname} \
 -c 8 \
--o ${jobtime}/busco_hap2
+-o ${subdir}/busco_hap2
 
 printf "\nRunning busco on combined fasta\n"
 
@@ -140,7 +141,7 @@ busco \
 -m genome \
 -l ./${dbname} \
 -c 8 \
--o ${jobtime}/busco_combined
+-o ${subdir}/busco_combined
 
 printf "\nDone running busco\n"
 
@@ -155,37 +156,39 @@ jellyfish count \
 -m 22 \
 -s 1300000000 \
 -t 8 \
--C hap1.fa \
--o ${jobtime}/hap1_mer_counts.jf
+-C \
+hap1.fa \
+-o ${subdir}/hap1_mer_counts.jf
 
 printf "\nRunning jellyfish histo on hap1\n"
 jellyfish histo \
-${jobtime}/hap1_mer_counts.jf \
-> ${jobtime}/hap1_mer_counts.histo
+${subdir}/hap1_mer_counts.jf \
+> ${subdir}/hap1_mer_counts.histo
 
 printf "\nRunning jellyfish count on hap2\n"
 jellyfish count \
 -m 22 \
 -s 1300000000 \
 -t 8 \
--C hap2.fa \
--o ${jobtime}/hap2_mer_counts.jf
+-C \
+hap2.fa \
+-o ${subdir}/hap2_mer_counts.jf
 
 printf "\nRunning jellyfish histo on hap2\n"
 jellyfish histo \
-${jobtime}/hap2_mer_counts.jf \
-> ${jobtime}/hap2_mer_counts.histo
+${subdir}/hap2_mer_counts.jf \
+> ${subdir}/hap2_mer_counts.histo
 
 printf "\nDone running jellyfish\n"
 
 printf "\nMoving output back to new output directory in results location\n"
 
 mkdir -p ${out_dir_path}
-cp -r ${SLURM_TMPDIR}/${jobtime} ${out_dir_path}
+cp -r ${SLURM_TMPDIR}/${subdir} ${out_dir_path}
 
 printf "\n Moving logfile to the output folder \n"
-mv ${init_wd}/${log_filename} ${out_dir_path}/${jobtime}
+mv ${init_wd}/${log_filename} ${out_dir_path}/${subdir}
 
 printf "\n Copying logfile to the archive folder \n"
-cp ${out_dir_path}/${jobtime}/${log_filename} ${log_archive_dir}
+cp ${out_dir_path}/${subdir}/${log_filename} ${log_archive_dir}
 
