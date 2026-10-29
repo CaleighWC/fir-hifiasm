@@ -62,14 +62,14 @@ cd ${SLURM_TMPDIR}
 
 # Run jellyfish on input genome
 
-printf "Running jellyfish on ${genomename}"
+printf "\nRunning jellyfish on ${genomename}\n"
 
 jellyfish count \
 -m 22 \
 -s 1300000000 \
 -t 8 \
 -C \
-hap1.fa \
+${genomename} \
 -o ${subdir}/${genomename}.jf
 
 printf "\nRunning jellyfish histo on ${genomename}\n"
