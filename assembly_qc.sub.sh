@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --time=1-00:00:00
+#SBATCH --time=0-03:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
@@ -29,40 +29,59 @@ module list
 printf "Loading modules for job"
 module load \
 StdEnv/2023 \
-apptainer/1.3.4 \
-jellyfish/2.3.1
+apptainer/1.3.4
 
 printf "Currently loaded modules"
 module list
 
 # Create variables with paths and names of input files
 
+## Directory paths
+
+# The project directory
+projdir="/project/6006056/cwcharle/fir-hifiasm/"
+
+# The scratch directory for hifiasm project results
+assemblyscratch="/scratch/cwcharle/fir-hifiasm"
+
 # The path where you would like the job output to be placed
-out_dir_path="/home/cwcharle/scratch/fir-hifiasm/assembly_qc"
-log_archive_dir="/home/cwcharle/projects/def-dirwin/cwcharle/fir-hifiasm/copied_output_logs"
+out_dir_path="${assemblyscratch}/assembly_qc"
+log_archive_dir="${projdir}/copied_output_logs"
+
+## Input files
+
+# The genome assembly graphs
+genomepath="${assemblyscratch}/hifiasm/2026-Oct-19_15-35-12/"
+hap1_name='hifiasm.asm.hic.hap1.p_ctg.gfa'
+hap2_name='hifiasm.asm.hic.hap2.p_ctg.gfa'
+
+# Raw reads to compare assembly k-mer spectra against
+reads_path="/project/6006056/cwcharle/gw2022_data/HiFi_raw_reads"
+reads_name="P_trochiloides.HiFi.cells_concat.fasta"
+
+## BUSCO and KAT tools
 
 # The Busco database
 dbpath='/scratch/cwcharle/busco_downloads/lineages'
 dbname='passeriformes_odb10'
 
-# The genome assembly graphs
-genomepath='/scratch/cwcharle/fir-hifiasm/hifiasm/2026-Oct-19_15-35-12'
-hap1_name='hifiasm.asm.hic.hap1.p_ctg.gfa'
-hap2_name='hifiasm.asm.hic.hap2.p_ctg.gfa'
-
 # The busco container
-contpath='/home/cwcharle/projects/def-dirwin/cwcharle/annotation-prep/'
-contname='busco_v5.8.0_cv1.sif'
+buscopath='/home/cwcharle/projects/def-dirwin/cwcharle/annotation-prep/'
+busconame='busco_v5.8.0_cv1.sif'
+
+# The KAT container
+katpath="${projdir}"
+katname='kat_2.4.2--py39he0b6574_5.sif'
 
 # gfatools install location
-gfatoolspath='/project/6006056/cwcharle/fir-hifiasm/gfatools/'
+gfatoolspath="${projdir}/gfatools/"
 
 # Copy input files to temp node local directory as input and make working directory
 
 cp ${genomepath}/${hap1_name} ${SLURM_TMPDIR} 
 cp ${genomepath}/${hap2_name} ${SLURM_TMPDIR}
 
-cp ${contpath}/${contname} ${SLURM_TMPDIR}
+cp ${buscopath}/${busconame} ${SLURM_TMPDIR}
 
 cp -r ${dbpath}/${dbname} ${SLURM_TMPDIR}
 
@@ -78,7 +97,7 @@ mkdir ${SLURM_TMPDIR}/${subdir}
 
 cd ${SLURM_TMPDIR}
 
-# Run gfatools for stats and extract fastas
+# Run gfatools from local install for stats and extract fastas
 
 printf "Printing stats of graphs to files"
 ${gfatoolspath}/gfatools stat ${hap1_name} > ${subdir}/hap1_gfastats.txt
@@ -103,7 +122,7 @@ apptainer run \
 -W ${SLURM_TMPDIR} \
 --compat \
 --cwd /busco_wd \
-busco_v5.8.0_cv1.sif \
+${busconame} \
 busco \
 -i hap1.fa \
 -m genome \
@@ -119,7 +138,7 @@ apptainer run \
 -W ${SLURM_TMPDIR} \
 --compat \
 --cwd /busco_wd \
-busco_v5.8.0_cv1.sif \
+${busconame} \
 busco \
 -i hap2.fa \
 -m genome \
@@ -135,7 +154,7 @@ apptainer run \
 -W ${SLURM_TMPDIR} \
 --compat \
 --cwd /busco_wd \
-busco_v5.8.0_cv1.sif \
+${busconame} \
 busco \
 -i haps_concat.fa \
 -m genome \
@@ -143,43 +162,130 @@ busco \
 -c 8 \
 -o ${subdir}/busco_combined
 
+printf "\nDeleting file with all busco sequences to save space\n"
+find . -type d -name "run_passeriformes_odb10" -prune -exec rm -rf {} +
+
 printf "\nDone running busco\n"
 
 printf "The files in SLURM_TMPDIR are now"
 echo $(ls ${SLURM_TMPDIR})
 
-printf "\nStarting to run jellyfish\n"
+printf "\nStarting to run KAT\n"
 
-printf "\nRunning jellyfish count on hap1\n"
+# Set hash parameters for raw reads and assembly
+read_hash=1625081002
+assembly_hash=1300000000
 
-jellyfish count \
--m 22 \
--s 1300000000 \
--t 8 \
--C \
-hap1.fa \
--o ${subdir}/hap1_mer_counts.jf
+printf "\nRunning KAT tools on hap1\n"
 
-printf "\nRunning jellyfish histo on hap1\n"
-jellyfish histo \
-${subdir}/hap1_mer_counts.jf \
-> ${subdir}/hap1_mer_counts.histo
+# Set id to hap1
 
-printf "\nRunning jellyfish count on hap2\n"
-jellyfish count \
--m 22 \
--s 1300000000 \
--t 8 \
--C \
-hap2.fa \
--o ${subdir}/hap2_mer_counts.jf
+input_id="hap1"
 
-printf "\nRunning jellyfish histo on hap2\n"
-jellyfish histo \
-${subdir}/hap2_mer_counts.jf \
-> ${subdir}/hap2_mer_counts.histo
+printf "\nRunning KAT comp on ${input_id}\n"
 
-printf "\nDone running jellyfish\n"
+apptainer exec \
+kat_2.4.2--py39he0b6574_5.sif \
+kat comp \
+--threads 8 \
+--hash_size_1 ${read_hash} \ 
+--hash_size_2 ${assembly_hash} \
+-o ${subdir}/raw_vs_assmbly_${input_id} \
+--verbose \
+--output_hists \
+${reads_name} \
+${input_id}.fa
+
+printf "\nRunning KAT plot density on ${input_id}\n"
+apptainer exec \
+kat_2.4.2--py39he0b6574_5.sif \
+kat plot density \
+--x_max 10000 \
+--output ${subdir}/kat_density_${input_id}.mx.pdf \
+${subdir}/raw_vs_assmbly_${input_id}.mx
+
+printf "\nRunning KAT cold on ${input_id}\n"
+apptainer exec \
+kat_2.4.2--py39he0b6574_5.sif \
+kat cold \
+--threads 8 \
+--verbose \
+--hash_size ${read_hash} \
+--output_prefix ${subdir}/kat_cold_${input_id} \
+${input_id}.fa \
+${reads_name}
+
+# Set id to hap2
+input_id="hap2"
+printf "\nRunning KAT comp on ${input_id}\n"
+
+apptainer exec \
+kat_2.4.2--py39he0b6574_5.sif \
+kat comp \
+--threads 8 \
+--hash_size_1 ${read_hash} \
+--hash_size_2 ${assembly_hash} \
+-o ${subdir}/raw_vs_assmbly_${input_id} \
+--verbose \
+--output_hists \
+${reads_name} \
+${input_id}.fa
+
+printf "\nRunning KAT plot density on ${input_id}\n"
+apptainer exec \
+kat_2.4.2--py39he0b6574_5.sif \
+kat plot density \
+--x_max 10000 \
+--output ${subdir}/kat_density_${input_id}.mx.pdf \
+${subdir}/raw_vs_assmbly_${input_id}.mx
+
+printf "\nRunning KAT cold on ${input_id}\n"
+apptainer exec \
+kat_2.4.2--py39he0b6574_5.sif \
+kat cold \
+--threads 8 \
+--verbose \
+--hash_size ${read_hash} \
+--output_prefix ${subdir}/kat_cold_${input_id} \
+${input_id}.fa \
+${reads_name}
+
+# Set id to concatenated
+input_id="haps_concat"
+printf "\nRunning KAT comp on ${input_id}\n"
+
+apptainer exec \
+kat_2.4.2--py39he0b6574_5.sif \
+kat comp \
+--threads 8 \
+--hash_size_1 ${read_hash} \
+--hash_size_2 ${assembly_hash} \
+-o ${subdir}/raw_vs_assmbly_${input_id} \
+--verbose \
+--output_hists \
+${reads_name} \
+${input_id}.fa
+
+printf "\nRunning KAT plot density on ${input_id}\n"
+apptainer exec \
+kat_2.4.2--py39he0b6574_5.sif \
+kat plot density \
+--x_max 10000 \
+--output ${subdir}/kat_density_${input_id}.mx.pdf \
+${subdir}/raw_vs_assmbly_${input_id}.mx
+
+printf "\nRunning KAT cold on ${input_id}\n"
+apptainer exec \
+kat_2.4.2--py39he0b6574_5.sif \
+kat cold \
+--threads 8 \
+--verbose \
+--hash_size ${read_hash} \
+--output_prefix ${subdir}/kat_cold_${input_id} \
+${input_id}.fa \
+${reads_name}
+
+printf "\nDone running KAT\n"
 
 printf "\nMoving output back to new output directory in results location\n"
 
