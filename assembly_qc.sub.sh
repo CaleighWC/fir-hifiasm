@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH --time=0-03:00:00
+#SBATCH --time=2-0:00:00
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=400G
 #SBATCH --job-name="assembly_qc"
 #SBATCH --account=def-dirwin
 #SBATCH --output=job_%j.out
@@ -81,7 +81,10 @@ gfatoolspath="${projdir}/gfatools/"
 cp ${genomepath}/${hap1_name} ${SLURM_TMPDIR} 
 cp ${genomepath}/${hap2_name} ${SLURM_TMPDIR}
 
+cp ${reads_path}/${reads_name} ${SLURM_TMPDIR}
+
 cp ${buscopath}/${busconame} ${SLURM_TMPDIR}
+cp ${katpath}/${katname} ${SLURM_TMPDIR}
 
 cp -r ${dbpath}/${dbname} ${SLURM_TMPDIR}
 
@@ -127,7 +130,7 @@ busco \
 -i hap1.fa \
 -m genome \
 -l ./${dbname} \
--c 8 \
+-c $SLURM_CPUS_PER_TASK \
 -o ${subdir}/busco_hap1
 
 printf "\nRunning busco on hap2\n"
@@ -143,7 +146,7 @@ busco \
 -i hap2.fa \
 -m genome \
 -l ./${dbname} \
--c 8 \
+-c $SLURM_CPUS_PER_TASK \
 -o ${subdir}/busco_hap2
 
 printf "\nRunning busco on combined fasta\n"
@@ -159,7 +162,7 @@ busco \
 -i haps_concat.fa \
 -m genome \
 -l ./${dbname} \
--c 8 \
+-c $SLURM_CPUS_PER_TASK \
 -o ${subdir}/busco_combined
 
 printf "\nDeleting file with all busco sequences to save space\n"
@@ -173,8 +176,8 @@ echo $(ls ${SLURM_TMPDIR})
 printf "\nStarting to run KAT\n"
 
 # Set hash parameters for raw reads and assembly
-read_hash=1625081002
-assembly_hash=1300000000
+read_hash=5025081002
+assembly_hash=1400000000
 
 printf "\nRunning KAT tools on hap1\n"
 
@@ -187,8 +190,8 @@ printf "\nRunning KAT comp on ${input_id}\n"
 apptainer exec \
 kat_2.4.2--py39he0b6574_5.sif \
 kat comp \
---threads 8 \
---hash_size_1 ${read_hash} \ 
+--threads $SLURM_CPUS_PER_TASK \
+--hash_size_1 ${read_hash} \
 --hash_size_2 ${assembly_hash} \
 -o ${subdir}/raw_vs_assmbly_${input_id} \
 --verbose \
@@ -202,13 +205,13 @@ kat_2.4.2--py39he0b6574_5.sif \
 kat plot density \
 --x_max 10000 \
 --output ${subdir}/kat_density_${input_id}.mx.pdf \
-${subdir}/raw_vs_assmbly_${input_id}.mx
+${subdir}/raw_vs_assmbly_${input_id}-main.mx
 
 printf "\nRunning KAT cold on ${input_id}\n"
 apptainer exec \
 kat_2.4.2--py39he0b6574_5.sif \
 kat cold \
---threads 8 \
+--threads $SLURM_CPUS_PER_TASK \
 --verbose \
 --hash_size ${read_hash} \
 --output_prefix ${subdir}/kat_cold_${input_id} \
@@ -222,7 +225,7 @@ printf "\nRunning KAT comp on ${input_id}\n"
 apptainer exec \
 kat_2.4.2--py39he0b6574_5.sif \
 kat comp \
---threads 8 \
+--threads $SLURM_CPUS_PER_TASK \
 --hash_size_1 ${read_hash} \
 --hash_size_2 ${assembly_hash} \
 -o ${subdir}/raw_vs_assmbly_${input_id} \
@@ -237,13 +240,13 @@ kat_2.4.2--py39he0b6574_5.sif \
 kat plot density \
 --x_max 10000 \
 --output ${subdir}/kat_density_${input_id}.mx.pdf \
-${subdir}/raw_vs_assmbly_${input_id}.mx
+${subdir}/raw_vs_assmbly_${input_id}-main.mx
 
 printf "\nRunning KAT cold on ${input_id}\n"
 apptainer exec \
 kat_2.4.2--py39he0b6574_5.sif \
 kat cold \
---threads 8 \
+--threads $SLURM_CPUS_PER_TASK \
 --verbose \
 --hash_size ${read_hash} \
 --output_prefix ${subdir}/kat_cold_${input_id} \
@@ -257,7 +260,7 @@ printf "\nRunning KAT comp on ${input_id}\n"
 apptainer exec \
 kat_2.4.2--py39he0b6574_5.sif \
 kat comp \
---threads 8 \
+--threads $SLURM_CPUS_PER_TASK \
 --hash_size_1 ${read_hash} \
 --hash_size_2 ${assembly_hash} \
 -o ${subdir}/raw_vs_assmbly_${input_id} \
@@ -272,13 +275,13 @@ kat_2.4.2--py39he0b6574_5.sif \
 kat plot density \
 --x_max 10000 \
 --output ${subdir}/kat_density_${input_id}.mx.pdf \
-${subdir}/raw_vs_assmbly_${input_id}.mx
+${subdir}/raw_vs_assmbly_${input_id}-main.mx
 
 printf "\nRunning KAT cold on ${input_id}\n"
 apptainer exec \
 kat_2.4.2--py39he0b6574_5.sif \
 kat cold \
---threads 8 \
+--threads $SLURM_CPUS_PER_TASK \
 --verbose \
 --hash_size ${read_hash} \
 --output_prefix ${subdir}/kat_cold_${input_id} \
