@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --time=2-0:00:00
+#SBATCH --time=4-0:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=400G
@@ -177,81 +177,81 @@ printf "\nStarting to run KAT\n"
 
 # Set hash parameters for raw reads and assembly
 read_hash=5025081002
-assembly_hash=1400000000
-
-printf "\nRunning KAT tools on hap1\n"
-
-# Set id to hap1
-
-input_id="hap1"
-
-printf "\nRunning KAT comp on ${input_id}\n"
-
-apptainer exec \
-kat_2.4.2--py39he0b6574_5.sif \
-kat comp \
---threads $SLURM_CPUS_PER_TASK \
---hash_size_1 ${read_hash} \
---hash_size_2 ${assembly_hash} \
--o ${subdir}/raw_vs_assmbly_${input_id} \
---verbose \
---output_hists \
-${reads_name} \
-${input_id}.fa
-
-printf "\nRunning KAT plot density on ${input_id}\n"
-apptainer exec \
-kat_2.4.2--py39he0b6574_5.sif \
-kat plot density \
---x_max 10000 \
---output ${subdir}/kat_density_${input_id}.mx.pdf \
-${subdir}/raw_vs_assmbly_${input_id}-main.mx
-
-printf "\nRunning KAT cold on ${input_id}\n"
-apptainer exec \
-kat_2.4.2--py39he0b6574_5.sif \
-kat cold \
---threads $SLURM_CPUS_PER_TASK \
---verbose \
---hash_size ${read_hash} \
---output_prefix ${subdir}/kat_cold_${input_id} \
-${input_id}.fa \
-${reads_name}
-
-# Set id to hap2
-input_id="hap2"
-printf "\nRunning KAT comp on ${input_id}\n"
-
-apptainer exec \
-kat_2.4.2--py39he0b6574_5.sif \
-kat comp \
---threads $SLURM_CPUS_PER_TASK \
---hash_size_1 ${read_hash} \
---hash_size_2 ${assembly_hash} \
--o ${subdir}/raw_vs_assmbly_${input_id} \
---verbose \
---output_hists \
-${reads_name} \
-${input_id}.fa
-
-printf "\nRunning KAT plot density on ${input_id}\n"
-apptainer exec \
-kat_2.4.2--py39he0b6574_5.sif \
-kat plot density \
---x_max 10000 \
---output ${subdir}/kat_density_${input_id}.mx.pdf \
-${subdir}/raw_vs_assmbly_${input_id}-main.mx
-
-printf "\nRunning KAT cold on ${input_id}\n"
-apptainer exec \
-kat_2.4.2--py39he0b6574_5.sif \
-kat cold \
---threads $SLURM_CPUS_PER_TASK \
---verbose \
---hash_size ${read_hash} \
---output_prefix ${subdir}/kat_cold_${input_id} \
-${input_id}.fa \
-${reads_name}
+assembly_hash=2800000000
+#
+#printf "\nRunning KAT tools on hap1\n"
+#
+## Set id to hap1
+#
+#input_id="hap1"
+#
+#printf "\nRunning KAT comp on ${input_id}\n"
+#
+#apptainer exec \
+#kat_2.4.2--py39he0b6574_5.sif \
+#kat comp \
+#--threads $SLURM_CPUS_PER_TASK \
+#--hash_size_1 ${read_hash} \
+#--hash_size_2 ${assembly_hash} \
+#-o ${subdir}/raw_vs_assmbly_${input_id} \
+#--verbose \
+#--output_hists \
+#${reads_name} \
+#${input_id}.fa
+#
+#printf "\nRunning KAT plot density on ${input_id}\n"
+#apptainer exec \
+#kat_2.4.2--py39he0b6574_5.sif \
+#kat plot density \
+#--x_max 10000 \
+#--output ${subdir}/kat_density_${input_id}.mx.pdf \
+#${subdir}/raw_vs_assmbly_${input_id}-main.mx
+#
+#printf "\nRunning KAT cold on ${input_id}\n"
+#apptainer exec \
+#kat_2.4.2--py39he0b6574_5.sif \
+#kat cold \
+#--threads $SLURM_CPUS_PER_TASK \
+#--verbose \
+#--hash_size ${read_hash} \
+#--output_prefix ${subdir}/kat_cold_${input_id} \
+#${input_id}.fa \
+#${reads_name}
+#
+## Set id to hap2
+#input_id="hap2"
+#printf "\nRunning KAT comp on ${input_id}\n"
+#
+#apptainer exec \
+#kat_2.4.2--py39he0b6574_5.sif \
+#kat comp \
+#--threads $SLURM_CPUS_PER_TASK \
+#--hash_size_1 ${read_hash} \
+#--hash_size_2 ${assembly_hash} \
+#-o ${subdir}/raw_vs_assmbly_${input_id} \
+#--verbose \
+#--output_hists \
+#${reads_name} \
+#${input_id}.fa
+#
+#printf "\nRunning KAT plot density on ${input_id}\n"
+#apptainer exec \
+#kat_2.4.2--py39he0b6574_5.sif \
+#kat plot density \
+#--x_max 10000 \
+#--output ${subdir}/kat_density_${input_id}.mx.pdf \
+#${subdir}/raw_vs_assmbly_${input_id}-main.mx
+#
+#printf "\nRunning KAT cold on ${input_id}\n"
+#apptainer exec \
+#kat_2.4.2--py39he0b6574_5.sif \
+#kat cold \
+#--threads $SLURM_CPUS_PER_TASK \
+#--verbose \
+#--hash_size ${read_hash} \
+#--output_prefix ${subdir}/kat_cold_${input_id} \
+#${input_id}.fa \
+#${reads_name}
 
 # Set id to concatenated
 input_id="haps_concat"
@@ -277,6 +277,11 @@ kat plot density \
 --output ${subdir}/kat_density_${input_id}.mx.pdf \
 ${subdir}/raw_vs_assmbly_${input_id}-main.mx
 
+printf "\nMoving output back to output directory in case runtime limit is reached\n"
+
+mkdir -p ${out_dir_path}
+cp -r ${SLURM_TMPDIR}/${subdir} ${out_dir_path}
+
 printf "\nRunning KAT cold on ${input_id}\n"
 apptainer exec \
 kat_2.4.2--py39he0b6574_5.sif \
@@ -290,7 +295,7 @@ ${reads_name}
 
 printf "\nDone running KAT\n"
 
-printf "\nMoving output back to new output directory in results location\n"
+printf "\nMoving output back to output directory in results location\n"
 
 mkdir -p ${out_dir_path}
 cp -r ${SLURM_TMPDIR}/${subdir} ${out_dir_path}
