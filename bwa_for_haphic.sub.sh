@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --time=0-00:05:00
+#SBATCH --time=1-00:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=28
 #SBATCH --mem=128G
-#SBATCH --job-name="bwa.sub.sh"
+#SBATCH --job-name="bwa_for_haphic.sub.sh"
 #SBATCH --account=def-dirwin
 #SBATCH --output=job_%j.out
 #SBATCH --mail-user=cwc@zoology.ubc.ca
@@ -14,7 +14,7 @@
 
 scratchpath="/home/cwcharle/scratch"
 
-this_filename="bwa.sub.sh"
+this_filename="bwa_for_haphic.sub.sh"
 
 prologue_filename="tools/single_job_prologue.sh"
 
@@ -36,17 +36,25 @@ module list
 # Create variables with paths and names of input and output files
 # This is the last spot where you need to ADD VARIABLES (3/3)
 
+## Paths to important directories
+
+# The project directory
+projdir="/project/6006056/cwcharle/fir-hifiasm/"
+
+# The scratch directory for hifiasm project results
+assemblyscratch="/scratch/cwcharle/fir-hifiasm"
+
 # The path where you would like the job output to be placed
-out_dir_path="/home/cwcharle/scratch/fir-hifiasm/bwa"
-log_archive_dir="/home/cwcharle/projects/def-dirwin/cwcharle/fir-hifiasm/copied_output_logs/bwa"
+out_dir_path="${assemblyscratch}/bwa"
+log_archive_dir="${projdir}/copied_output_logs/bwa"
 
 # The path to the hifiasm results folder
 
-input_from_hifiasm="/scratch/cwcharle/fir-hifiasm/2026-Aug-31_22-33-37"
+input_from_hifiasm="/scratch/cwcharle/fir-hifiasm/2026-Oct-19_15-35-12"
 
-hap1_name="hifiasm.asm.hic.hap1.p_ctg.fasta"
+hap1_name="hifiasm.asm.hic.hap1.p_ctg.gfa"
 
-hap2_name="hifiasm.asm.hic.hap2.p_ctg.fasta"
+hap2_name="hifiasm.asm.hic.hap2.p_ctg.gfa"
 
 # The path to and names of the Hi-C Reads
 hic_R1_path="/home/cwcharle/project/gw2022_data/HiC_raw_reads"
@@ -57,6 +65,9 @@ hic_R2_name="P_trochiloides.HiC.R2.fq.gz"
 
 # Path to HiC utils
 utils_path="/project/6006056/cwcharle/fir-hifiasm/HapHiC/utils"
+
+# Path to locally installed gfatools
+gfatoolspath="${projdir}/gfatools/"
 
 # Copy input files to temp node local directory
 # This makes reads/writes faster during the job
@@ -79,10 +90,15 @@ mkdir ${SLURM_TMPDIR}/${jobtime}
 printf "\nChanging working directory to job directory within SLURM_TMPDIR\n"
 cd ${SLURM_TMPDIR}/${jobtime}
 
+# Extracting fastas from .gfas for both haplotypes
+printf "Creating fastas from assembly graphs"
+${gfatoolspath}/gfatools gfa2fa ../${hap1_name} > ../hap1.fa
+${gfatoolspath}/gfatools gfa2fa ../${hap2_name} > ../hap2.fa
+
 # Concatenating fastas
 printf "\nConcatenating fastas for the two haplotypes\n"
 
-cat ../${hap1_name} ../${hap2_name} > ../both_haps.fa
+cat ../hap1.fa ../hap2.fa > ../both_haps.fa
 
 printf "\nThe files in SLURM_TMPDIR are:\n"
 echo $(ls ${SLURM_TMPDIR})
@@ -102,8 +118,8 @@ bwa mem \
 -5SP \
 -t 28 \
 ../both_haps.fa \
-../${hic_R1_path} \
-../${hic_R2_path} \
+../${hic_R1_name} \
+../${hic_R2_name} \
 | samblaster \
 | samtools view - \
 -@ 28 \
