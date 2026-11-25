@@ -29,7 +29,8 @@ module load \
 bwa-mem2/2.2.1 \
 samblaster/0.1.26 \
 samtools/1.22.1 \
-minimap2/2.30
+minimap2/2.31 \
+bedtools/2.31.1
 
 printf "\nCurrently loaded modules\n"
 module list
@@ -41,11 +42,17 @@ module list
 out_dir_path="/home/cwcharle/scratch/fir-hifiasm/make_tracks"
 log_archive_dir="/home/cwcharle/projects/def-dirwin/cwcharle/fir-hifiasm/copied_output_logs/make_tracks"
 
-# The path to the new scaffold from haphic to map sequences to
+# The path to the new scaffold from haphic (or just assembly) to map sequences to
 
-input_from_haphic="/scratch/cwcharle/fir-hifiasm/HapHiC/2026-Sep-18_17-07-47/04.build"
+#input_from_haphic="/scratch/cwcharle/fir-hifiasm/HapHiC/"
 
-scaffold_name="scaffolds.fa"
+#scaffold_name="scaffolds.fa"
+
+input_from_hifiasm="/home/cwcharle/scratch/fir-hifiasm/hifiasm/2026-Oct-19_15-35-12"
+
+hap1_name="hifiasm.asm.hic.hap1.p_ctg.gfa"
+
+hap2_name="hifiasm.asm.hic.hap2.p_ctg.gfa"
 
 # The path to Pacbio HiFi reads to map to the new scaffold for coverage track
 
@@ -57,10 +64,16 @@ pacbio_name="P_trochiloides.HiFi.cells_concat.fasta"
 # Path to HiC utils
 utils_path="/project/6006056/cwcharle/fir-hifiasm/HapHiC/utils"
 
+# Path to locally installed gfatools
+gfatoolspath="${projdir}/gfatools/"
+
 # Copy input files to temp node local directory
 # This makes reads/writes faster during the job
 
-cp ${input_from_haphic}/${scaffold_name} ${SLURM_TMPDIR}
+#cp ${input_from_haphic}/${scaffold_name} ${SLURM_TMPDIR}
+
+cp ${input_from_hifiasm}/${hap1_name} ${SLURM_TMPDIR}
+cp ${input_from_hifiasm}/${hap2_name} ${SLURM_TMPDIR}
 
 cp ${pacbio_dir}/${pacbio_name} ${SLURM_TMPDIR}
 
@@ -76,6 +89,15 @@ mkdir ${SLURM_TMPDIR}/${jobtime}
 printf "\nChanging working directory to job directory within SLURM_TMPDIR\n"
 cd ${SLURM_TMPDIR}/${jobtime}
 
+# Extracting fastas from .gfas for both haplotypes
+printf "Creating fastas from assembly graphs"
+${gfatoolspath}/gfatools gfa2fa ../${hap1_name} > ../hap1.fa
+${gfatoolspath}/gfatools gfa2fa ../${hap2_name} > ../hap2.fa
+
+# Concatenating fastas
+printf "\nConcatenating fastas for the two haplotypes\n"
+cat ../hap1.fa ../hap2.fa > ../both_haps.fa
+
 # Run minimap
 printf "\nRunning minimap2 to create coverage track\n"
 
@@ -83,9 +105,15 @@ minimap2 \
 -t 27 \
 -ax \
 map-hifi \
-../${scaffold_name} \
+../both_haps.fa \
 ../${pacbio_name} \
 > hifi_coverage.sam
+
+# Use tools to create coverage and gap tracks
+samtools view -b hifi_coverage.sam > hifi_coverage.bam
+samtools sort hifi_coverage.bam > hifi_coverage.sorted.bam
+bedtools genomecov -bga -ibam hifi_coverage.sorted.bam > hifi_coverage.sorted.bga
+grep -w 0$ hifi_coverage.sorted.bga | sed 's/0$/200/g' > hifi_coverage.sorted.gaps.bga
 
 # Move files to the output directory
 printf "\nCopying final output file back to projects directory in ${out_dir_path}\n"
