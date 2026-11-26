@@ -26,9 +26,8 @@ printf "\nCurrently loaded modules\n"
 module list
 
 module load \
-bwa-mem2/2.2.1 \
-samblaster/0.1.26 \
-samtools/1.22.1 \
+StdEnv/2026 \
+samtools/1.24 \
 minimap2/2.31 \
 bedtools/2.31.1
 
@@ -65,7 +64,7 @@ pacbio_name="P_trochiloides.HiFi.cells_concat.fasta"
 utils_path="/project/6006056/cwcharle/fir-hifiasm/HapHiC/utils"
 
 # Path to locally installed gfatools
-gfatoolspath="${projdir}/gfatools/"
+gfatoolspath="/project/6006056/cwcharle/fir-hifiasm/gfatools/"
 
 # Copy input files to temp node local directory
 # This makes reads/writes faster during the job
